@@ -3,3 +3,11 @@ Problems and ideas:
 - only compatible with .wav; problem with .mp3 -> need to import plugin
 - slow swing file explorer -> change to other?
 - one slider with two change knobs (instead of current two sliders with each one knob)?
+
+
+import org.controlsfx.control.RangeSlider;
+<dependency>
+   <groupId>org.controlsfx</groupId>
+   <artifactId>controlsfx</artifactId>
+   <version>11.0.1</version>
+</dependency>

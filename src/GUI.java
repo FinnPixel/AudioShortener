@@ -4,68 +4,66 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Hashtable;
+import javax.swing.JSlider;
 
 public class GUI extends JFrame {
 
-    private final JPanel mainPanel = new JPanel();
-    private final JPanel panelInner = new JPanel();
-    private final BorderLayout mainLayout = new BorderLayout();
-
-    private JLabel selectedFile;
+    private JLabel selectedFileTitle;
     private JSlider cutEnd;
     private JSlider cutFront;
-    private File fileInput = null;
-
-    JLabel currentCutOffEnd = new JLabel();
-    JLabel currentCutOffFront = new JLabel();
-
-    private final FileNameExtensionFilter filter = new FileNameExtensionFilter(".wav", "wav");
-    private String audioTitle = "no audio opened";
-
-    private final Hashtable<Integer, JLabel> hashtableEnd = new Hashtable<>();
-    private final Hashtable<Integer, JLabel> hashtableFront = new Hashtable<>();
-
+    private File fileInput;
+    JLabel currentCutOffEnd;
+    JLabel currentCutOffFront;
+    private FileNameExtensionFilter filter;
+    private String audioTitle;
     JFileChooser fileChooser;
 
     public void init() {
         setSize(900, 600);
         setLocationRelativeTo(null);
-        mainPanel.setLayout(mainLayout);
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
         this.add(mainPanel);
 
-        selectedFile = new JLabel(audioTitle);
-        selectedFile.setPreferredSize(new Dimension(800, 100));
-        selectedFile.setFont(new Font("Verdana", Font.BOLD, 20));
-        selectedFile.setAlignmentX(Component.CENTER_ALIGNMENT);
+        audioTitle = "no audio opened";
+        selectedFileTitle = new JLabel(audioTitle);
+        selectedFileTitle.setPreferredSize(new Dimension(800, 100));
+        selectedFileTitle.setFont(new Font("Verdana", Font.BOLD, 20));
+        selectedFileTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         cutEnd = new JSlider(0, 1000, 0);
         cutEnd.setPreferredSize(new Dimension(600, 40));
         cutEnd.setPaintLabels(true);
+        currentCutOffEnd = new JLabel();
         currentCutOffEnd.setText("00:00:00");
+        Hashtable<Integer, JLabel> hashtableEnd = new Hashtable<>();
         hashtableEnd.put(0, currentCutOffEnd);
         cutEnd.setLabelTable(hashtableEnd);
         cutEnd.setInverted(true);
         cutEnd.addChangeListener((change) -> updateFront());
-
+        
         cutFront = new JSlider(0, 1000,0);
         cutFront.setPreferredSize(new Dimension(600, 40));
         cutFront.setPaintLabels(true);
+        currentCutOffFront = new JLabel();
         currentCutOffFront.setText("00:00:00");
+        Hashtable<Integer, JLabel> hashtableFront = new Hashtable<>();
         hashtableFront.put(0, currentCutOffFront);
         cutFront.setLabelTable(hashtableFront);
         cutFront.addChangeListener((change) -> updateEnd());
 
-        JButton openFileExplorer = new JButton("open audio file");
-        openFileExplorer.setAlignmentX(Component.CENTER_ALIGNMENT);
-        openFileExplorer.addActionListener((change) -> openFileEvent());
+        JButton openFile = new JButton("open audio file");
+        openFile.setAlignmentX(Component.CENTER_ALIGNMENT);
+        openFile.addActionListener((change) -> openFileEvent());
 
         JButton exportFile = new JButton("export file");
         exportFile.setAlignmentX(Component.CENTER_ALIGNMENT);
         exportFile.addActionListener((change) -> exportFileEvent());
 
+        JPanel panelInner = new JPanel();
         panelInner.setLayout(new BoxLayout(panelInner, BoxLayout.Y_AXIS));
         panelInner.add(Box.createRigidArea(new Dimension(0, 60)));
-        panelInner.add(selectedFile);
+        panelInner.add(selectedFileTitle);
         panelInner.add(Box.createRigidArea(new Dimension(0, 40)));
         panelInner.add(cutFront);
         panelInner.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -73,7 +71,7 @@ public class GUI extends JFrame {
         panelInner.add(Box.createRigidArea(new Dimension(0, 80)));
 
         JPanel openAndExport = new JPanel();
-        openAndExport.add(openFileExplorer);
+        openAndExport.add(openFile);
         openAndExport.add(exportFile);
         panelInner.add(openAndExport);
         panelInner.add(Box.createRigidArea(new Dimension(0, 60)));
@@ -123,10 +121,10 @@ public class GUI extends JFrame {
 
     private void updateFileName() {
         if(fileInput == null) {
-            selectedFile.setText("unable to load audio");
+            selectedFileTitle.setText("unable to load audio");
         } else {
             audioTitle = fileInput.getName();
-            selectedFile.setText(audioTitle);
+            selectedFileTitle.setText(audioTitle);
         }
     }
 
@@ -172,6 +170,7 @@ public class GUI extends JFrame {
     }
 
     private void openFileEvent() {
+        filter = new FileNameExtensionFilter(".wav", "wav");
         fileChooser = new JFileChooser();
         fileChooser.setFileFilter(filter);
         fileChooser.setAcceptAllFileFilterUsed(false);
