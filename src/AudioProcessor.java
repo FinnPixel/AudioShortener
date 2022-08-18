@@ -2,12 +2,13 @@ import java.io.*;
 import javax.sound.sampled.*;
 
 public class AudioProcessor {
+    private static AudioInputStream inputStream;
+    private static AudioFileFormat fileFormat;
 
     public static void shortenAudio(File fileInput, int skipSeconds, int cutAtEnd, File fileOutput) {
-        AudioInputStream inputStream = null;
         AudioInputStream shortenedStream = null;
         try {
-            AudioFileFormat fileFormat = AudioSystem.getAudioFileFormat(fileInput);
+            fileFormat = AudioSystem.getAudioFileFormat(fileInput);
             AudioFormat format = fileFormat.getFormat();
             inputStream = AudioSystem.getAudioInputStream(fileInput);
             int bytesPerSecond = format.getFrameSize() * (int)format.getFrameRate();
@@ -24,8 +25,6 @@ public class AudioProcessor {
     }
 
     public static long getDurationInSeconds(File fileInput) {
-        AudioInputStream inputStream;
-        AudioFileFormat fileFormat;
         double secs;
         try {
             fileFormat = AudioSystem.getAudioFileFormat(fileInput);
