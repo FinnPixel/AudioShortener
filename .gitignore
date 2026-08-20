@@ -3,3 +3,7 @@
 /bin/
 /build/
 /.gradle/
+
+# IntelliJ module config, regenerated from build.gradle on import
+*.iml
+/.idea/modules.xml
