@@ -2,201 +2,163 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
-import java.util.Hashtable;
-import javax.swing.JSlider;
 
 public class GUI extends JFrame {
 
+    private static final int SLIDER_RESOLUTION = 1000;
+    private static final long MAX_DURATION_SECONDS = 360000;
+
     private JLabel selectedFileTitle;
-    private JSlider cutEnd;
-    private JSlider cutFront;
+    private JLabel startLabel;
+    private JLabel endLabel;
+    private RangeSlider rangeSlider;
+    private JButton exportFile;
+
     private File fileInput;
-    JLabel currentCutOffEnd;
-    JLabel currentCutOffFront;
-    private FileNameExtensionFilter filter;
-    private String audioTitle;
-    JFileChooser fileChooser;
+    private long durationInSeconds;
+    private JFileChooser fileChooser;
 
     public void init() {
+        setTitle("AudioShortener");
         setSize(900, 600);
         setLocationRelativeTo(null);
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BorderLayout());
-        this.add(mainPanel);
 
-        audioTitle = "no audio opened";
-        selectedFileTitle = new JLabel(audioTitle);
-        selectedFileTitle.setPreferredSize(new Dimension(800, 100));
+        selectedFileTitle = new JLabel("no audio opened");
         selectedFileTitle.setFont(new Font("Verdana", Font.BOLD, 20));
         selectedFileTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        cutEnd = new JSlider(0, 1000, 0);
-        cutEnd.setPreferredSize(new Dimension(600, 40));
-        cutEnd.setPaintLabels(true);
-        currentCutOffEnd = new JLabel();
-        currentCutOffEnd.setText("00:00:00");
-        Hashtable<Integer, JLabel> hashtableEnd = new Hashtable<>();
-        hashtableEnd.put(0, currentCutOffEnd);
-        cutEnd.setLabelTable(hashtableEnd);
-        cutEnd.setInverted(true);
-        cutEnd.addChangeListener((change) -> updateFront());
-        
-        cutFront = new JSlider(0, 1000,0);
-        cutFront.setPreferredSize(new Dimension(600, 40));
-        cutFront.setPaintLabels(true);
-        currentCutOffFront = new JLabel();
-        currentCutOffFront.setText("00:00:00");
-        Hashtable<Integer, JLabel> hashtableFront = new Hashtable<>();
-        hashtableFront.put(0, currentCutOffFront);
-        cutFront.setLabelTable(hashtableFront);
-        cutFront.addChangeListener((change) -> updateEnd());
+        rangeSlider = new RangeSlider(0, SLIDER_RESOLUTION);
+        rangeSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
+        rangeSlider.setEnabled(false);
+        rangeSlider.addChangeListener(change -> updateTimeLabels());
+
+        startLabel = new JLabel("00:00:00");
+        endLabel = new JLabel("00:00:00");
+        JPanel times = new JPanel(new BorderLayout());
+        times.add(startLabel, BorderLayout.WEST);
+        times.add(endLabel, BorderLayout.EAST);
+
+        JPanel range = new JPanel();
+        range.setLayout(new BoxLayout(range, BoxLayout.Y_AXIS));
+        range.setMaximumSize(new Dimension(600, 80));
+        range.setAlignmentX(Component.CENTER_ALIGNMENT);
+        range.add(rangeSlider);
+        range.add(times);
 
         JButton openFile = new JButton("open audio file");
-        openFile.setAlignmentX(Component.CENTER_ALIGNMENT);
-        openFile.addActionListener((change) -> openFileEvent());
+        openFile.addActionListener(change -> openFileEvent());
 
-        JButton exportFile = new JButton("export file");
-        exportFile.setAlignmentX(Component.CENTER_ALIGNMENT);
-        exportFile.addActionListener((change) -> exportFileEvent());
+        exportFile = new JButton("export file");
+        exportFile.setEnabled(false);
+        exportFile.addActionListener(change -> exportFileEvent());
+
+        JPanel buttons = new JPanel();
+        buttons.add(openFile);
+        buttons.add(exportFile);
+        buttons.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel panelInner = new JPanel();
         panelInner.setLayout(new BoxLayout(panelInner, BoxLayout.Y_AXIS));
-        panelInner.add(Box.createRigidArea(new Dimension(0, 60)));
+        panelInner.add(Box.createVerticalGlue());
         panelInner.add(selectedFileTitle);
         panelInner.add(Box.createRigidArea(new Dimension(0, 40)));
-        panelInner.add(cutFront);
-        panelInner.add(Box.createRigidArea(new Dimension(0, 20)));
-        panelInner.add(cutEnd);
-        panelInner.add(Box.createRigidArea(new Dimension(0, 80)));
+        panelInner.add(range);
+        panelInner.add(Box.createRigidArea(new Dimension(0, 40)));
+        panelInner.add(buttons);
+        panelInner.add(Box.createVerticalGlue());
 
-        JPanel openAndExport = new JPanel();
-        openAndExport.add(openFile);
-        openAndExport.add(exportFile);
-        panelInner.add(openAndExport);
-        panelInner.add(Box.createRigidArea(new Dimension(0, 60)));
-
-        /*JLabel error = new JLabel("please do not cut the whole audio");
-        error.setForeground(Color.red);
-        error.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panelInner.add(error);*/
-
-        JPanel north = new JPanel();
-        JPanel east = new JPanel();
-        JPanel south = new JPanel();
-        JPanel west = new JPanel();
-        north.setBackground(Color.blue);
-        south.setBackground(Color.green);
+        JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(panelInner, BorderLayout.CENTER);
-        mainPanel.add(north, BorderLayout.NORTH);
-        mainPanel.add(east, BorderLayout.EAST);
-        mainPanel.add(south, BorderLayout.SOUTH);
-        mainPanel.add(west, BorderLayout.WEST);
+        mainPanel.add(Box.createRigidArea(new Dimension(60, 0)), BorderLayout.EAST);
+        mainPanel.add(Box.createRigidArea(new Dimension(60, 0)), BorderLayout.WEST);
+        add(mainPanel);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
+
+        warmUpFileChooser();
     }
 
-    // currently, not in use, but could be a better alternative
-    private void openDirectory() {
-        try {
-            File directory = new File("C://Program Files//");
-            Desktop.getDesktop().open(directory);
-        } catch (IOException e) {
-            System.out.println("Something went wrong opening the directory.");
+    
+    private void warmUpFileChooser() {
+        new Thread(() -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setFileFilter(new FileNameExtensionFilter("audio files (*.wav, *.mp3)", "wav", "mp3"));
+            chooser.setAcceptAllFileFilterUsed(false);
+            SwingUtilities.invokeLater(() -> fileChooser = chooser);
+        }, "file-chooser-warmup").start();
+    }
+
+    private JFileChooser fileChooser() {
+        if (fileChooser == null) {
+            fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter("audio files (*.wav, *.mp3)", "wav", "mp3"));
+            fileChooser.setAcceptAllFileFilterUsed(false);
         }
-    }
-
-    public void updateEnd() {
-        cutEnd.setExtent(cutFront.getValue() + 1);
-        if(fileInput != null)
-            currentCutOffEnd.setText(getCutOffTextEnd());
-    }
-
-    public void updateFront() {
-        cutFront.setExtent(cutEnd.getValue() + 1);
-        if(fileInput != null)
-            currentCutOffFront.setText(getCutOffTextFront());
-    }
-
-    private void updateFileName() {
-        if(fileInput == null) {
-            selectedFileTitle.setText("unable to load audio");
-        } else {
-            audioTitle = fileInput.getName();
-            selectedFileTitle.setText(audioTitle);
-        }
-    }
-
-    private String getCutOffTextEnd() {
-        return getStandardTimeFormatFromSeconds(getSecondsCutOffEnd());
-    }
-
-    private String getCutOffTextFront() {
-        return getStandardTimeFormatFromSeconds(getSecondsCutOffFront());
-    }
-
-    private long getSecondsCutOffEnd() {
-        double currentRatio = cutEnd.getValue() / 1000.0;
-        return (long) (AudioProcessor.getDurationInSeconds(fileInput) * currentRatio);
-    }
-
-    private long getSecondsCutOffFront() {
-        double currentRatio = cutFront.getValue() / 1000.0;
-        return (long) (AudioProcessor.getDurationInSeconds(fileInput) * currentRatio);
-    }
-
-    private String getStandardTimeFormatFromSeconds(long seconds) {
-        short hours = (short) Math.floor(seconds / 60.0 / 60.0);
-        short minutes = (short) Math.floor(seconds / 60.0);
-        short secs = (short) (((seconds / 60.0) - Math.floor(seconds / 60.0)) * 60);
-        String time = "";
-        if(hours < 10) {
-            time = time + "0" + hours + ":";
-        } else {
-            time = time + hours + ":";
-        }
-        if(minutes < 10) {
-            time = time + "0" + minutes + ":";
-        } else {
-            time = time + minutes + ":";
-        }
-        if(secs < 10) {
-            time = time + "0" + secs;
-        } else {
-            time = time + secs;
-        }
-        return time;
+        return fileChooser;
     }
 
     private void openFileEvent() {
-        filter = new FileNameExtensionFilter(".wav", "wav");
-        fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(filter);
-        fileChooser.setAcceptAllFileFilterUsed(false);
-        int response = fileChooser.showOpenDialog(null);
-        if(response == JFileChooser.APPROVE_OPTION) {
-            fileInput = new File(fileChooser.getSelectedFile().getAbsolutePath());
-            if(AudioProcessor.getDurationInSeconds(fileInput) >= 360000) {
-                fileInput = null;
-            } else {
-                updateFileName();
-                System.out.println("loaded: " + fileInput.getName());
-            }
+        JFileChooser chooser = fileChooser();
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
         }
+
+        File selected = chooser.getSelectedFile();
+        long duration = AudioProcessor.getDurationInSeconds(selected);
+        if (duration <= 0) {
+            showError("Unable to read this audio file.");
+            return;
+        }
+        if (duration >= MAX_DURATION_SECONDS) {
+            showError("This audio file is too long.");
+            return;
+        }
+
+        fileInput = selected;
+        durationInSeconds = duration;
+        selectedFileTitle.setText(selected.getName());
+        rangeSlider.setEnabled(true);
+        rangeSlider.setValues(0, SLIDER_RESOLUTION);
+        exportFile.setEnabled(true);
+        updateTimeLabels();
     }
 
     private void exportFileEvent() {
-        if(fileInput != null) {
-            fileChooser = new JFileChooser();
-            fileChooser.setFileFilter(filter);
-            fileChooser.setAcceptAllFileFilterUsed(false);
-            int response = fileChooser.showSaveDialog(null);
-            if(response == JFileChooser.APPROVE_OPTION) {
-                File fileOutput = new File(fileChooser.getSelectedFile().getAbsolutePath() + ".wav");
-                AudioProcessor.shortenAudio(fileInput, (int) getSecondsCutOffFront()
-                        ,(int)(AudioProcessor.getDurationInSeconds(fileInput) - getSecondsCutOffEnd()), fileOutput);
-            }
+        int start = sliderValueToSeconds(rangeSlider.getLowValue());
+        int end = sliderValueToSeconds(rangeSlider.getHighValue());
+        if (end <= start) {
+            showError("The selected range is empty.");
+            return;
         }
+
+        JFileChooser chooser = fileChooser();
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File fileOutput = new File(chooser.getSelectedFile().getAbsolutePath().replaceAll("(?i)\\.wav$", "") + ".wav");
+        try {
+            AudioProcessor.shortenAudio(fileInput, start, end, fileOutput);
+        } catch (Exception e) {
+            showError("Export failed: " + e.getMessage());
+        }
+    }
+
+    private void updateTimeLabels() {
+        startLabel.setText(formatSeconds(sliderValueToSeconds(rangeSlider.getLowValue())));
+        endLabel.setText(formatSeconds(sliderValueToSeconds(rangeSlider.getHighValue())));
+    }
+
+    private int sliderValueToSeconds(int sliderValue) {
+        return (int) (durationInSeconds * sliderValue / (double) SLIDER_RESOLUTION);
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "AudioShortener", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static String formatSeconds(long seconds) {
+        return String.format("%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60);
     }
 }
